@@ -1,0 +1,33 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-deploy:
+    # TODO: Call the reusable workflow.
+    # Use the 'uses:' key (replaces 'runs-on:' — do NOT use both on the same job).
+    # Syntax: uses: ./.github/workflows/reusable-deploy.yml
+    uses: # ← fill this in
+
+    with:
+      # TODO: Pass the 'environment' input.
+      # Use the string value: staging
+      environment: # ← fill this in
+
+    secrets:
+      # TODO: Pass the 'deploy-token' secret.
+      # The secret is stored in GitHub Settings as DEPLOY_TOKEN.
+      # Syntax: ${{ secrets.DEPLOY_TOKEN }}
+      deploy-token: # ← fill this in
+
+  confirm:
+    name: Confirm deployment
+    runs-on: ubuntu-latest
+    needs: call-deploy
+    steps:
+      - name: Print deploy status
+        run: |
+          echo "Deploy result: ${{ needs.call-deploy.outputs.deploy-status }}"

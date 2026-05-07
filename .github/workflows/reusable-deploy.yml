@@ -1,0 +1,58 @@
+name: Reusable Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment (e.g. staging or production)'
+        required: true
+        type: string
+    secrets:
+      deploy-token:
+        description: 'Token used to authenticate the deployment'
+        required: true
+    outputs:
+      deploy-status:
+        description: 'Result string from the deploy step'
+        value: ${{ jobs.deploy.outputs.deploy-status }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    outputs:
+      deploy-status: ${{ steps.run-deploy.outputs.deploy-status }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Fake deploy
+        id: run-deploy
+        env:
+          DEPLOY_TOKEN: ${{ secrets.deploy-token }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          STATUS=$(node -e "
+            const { formatRelease } = require('./src/release.js');
+            const pkg = require('./package.json');
+            console.log(formatRelease(pkg.version, process.env.ENVIRONMENT));
+          ")
+          echo "deploy-status=${STATUS}" >> $GITHUB_OUTPUT
+          echo "Token present: ${{ secrets.deploy-token != '' }}"
+          echo "Deployed to: ${ENVIRONMENT}"
+          echo "Status: ${STATUS}"
